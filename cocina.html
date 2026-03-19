@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍳 Cocina — Los 6 Mestizos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f1dfc3;
+            --card: #141414;
+            --border: #2A2A2A;
+            --rojo: #E63946;
+            --verde: #2DC653;
+            --amarillo: #FFD166;
+            --texto: #F0F0F0;
+            --muted: #888;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--texto); padding: 20px; }
+
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        header h1 { font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; color: var(--rojo); }
+
+        .orders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+
+        .order-card { background: var(--card); border-radius: 16px; overflow: hidden; border: 1px solid var(--border); transition: 0.3s; }
+        .order-card.listo { opacity: 0.7; border-color: var(--verde); }
+
+        .card-head { background: var(--rojo); padding: 16px 20px; color: white; transition: 0.3s; }
+        .card-head.listo { background: var(--verde); }
+
+        .head-top { display: flex; justify-content: space-between; align-items: center; }
+        .num-orden { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: 1px; }
+        .hora { font-family: 'DM Mono', monospace; font-size: 0.9rem; }
+        .cliente-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-weight: 700; }
+
+        .card-body { padding: 20px; }
+        .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1f1f1f; font-size: 0.95rem; }
+        .item-label { color: var(--muted); }
+        .item-val { font-weight: 500; text-align: right; }
+        .val-salsa { color: var(--amarillo); }
+
+        .card-notas { background: #1e1e00; border: 1px solid #3d3d00; border-radius: 8px; padding: 10px; margin-top: 12px; font-size: 0.85rem; color: var(--amarillo); font-style: italic; }
+
+        .card-actions { padding: 20px; display: flex; gap: 12px; align-items: center; }
+
+        /* ESTILOS DE BOTONES CORREGIDOS */
+        .btn-status { 
+            flex: 1; border: none; border-radius: 10px; padding: 14px; 
+            font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; 
+            letter-spacing: 1px; cursor: pointer; display: flex; 
+            align-items: center; justify-content: center; gap: 8px; transition: 0.3s; 
+        }
+        .btn-marcar { background: var(--verde); color: white; }
+        .btn-marcar:hover { background: #25a343; }
+        
+        .btn-deshacer { background: #333; color: var(--texto); border: 1px solid #444; }
+        .btn-deshacer:hover { background: #444; }
+
+        .btn-icon { background: #222; border: none; padding: 12px; border-radius: 10px; cursor: pointer; color: var(--muted); transition: 0.2s; }
+        .btn-icon:hover { color: white; background: #333; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>📋 COMANDAS RECIBIDAS</h1>
+    <div id="status-info" style="font-size: 0.8rem; color: var(--muted); font-weight: bold; background: #000; padding: 5px 10px; border-radius: 5px;">Sincronizado</div>
+</header>
+
+<div class="orders-grid" id="orders-grid"></div>
+
+<script>
+    function renderOrders() {
+        const pedidos = JSON.parse(localStorage.getItem('pedidos_chilaquiles') || '[]');
+        const grid = document.getElementById('orders-grid');
+        grid.innerHTML = '';
+
+        pedidos.forEach((p, index) => {
+            // Unificamos el chequeo del estado
+            const esLista = p.estado === 'lista' || p.estado === 'listo';
+            const card = document.createElement('div');
+            card.className = `order-card ${esLista ? 'listo' : ''}`;
+            
+            card.innerHTML = `
+                <div class="card-head ${esLista ? 'listo' : ''}">
+                    <div class="head-top">
+                        <div class="num-orden">ORDEN #${String(p.num).padStart(3, '0')}</div>
+                        <div class="hora">${p.hora}</div>
+                    </div>
+                    <div class="cliente-row">
+                        <span>👤</span> ${p.cliente.toLowerCase()}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="item-row">
+                        <span class="item-label">Base</span>
+                        <span class="item-val">Totopos frescos</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="item-label">Salsa</span>
+                        <span class="item-val val-salsa">${p.salsa}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="item-label">Compl.</span>
+                        <span class="item-val">${Array.isArray(p.comp) ? p.comp.join(', ') : p.comp}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="item-label">Extras</span>
+                        <span class="item-val">${(Array.isArray(p.extras) && p.extras.length > 0) ? p.extras.join(', ') : 'Ninguno'}</span>
+                    </div>
+                    ${p.notas ? `<div class="card-notas">" ${p.notas} "</div>` : ''}
+                </div>
+                <div class="card-actions">
+                    ${esLista 
+                        ? `<button class="btn-status btn-deshacer" onclick="cambiarEstado(${index}, 'pendiente')">↩️ DESHACER</button>` 
+                        : `<button class="btn-status btn-marcar" onclick="cambiarEstado(${index}, 'lista')">✅ MARCAR LISTA</button>`
+                    }
+                    <button class="btn-icon" onclick="window.print()">🖨️</button>
+                    <button class="btn-icon" onclick="eliminar(${index})">✕</button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    // FUNCIÓN UNIFICADA PARA CAMBIAR ESTADOS
+    function cambiarEstado(idx, nuevoEstado) {
+        let pedidos = JSON.parse(localStorage.getItem('pedidos_chilaquiles'));
+        pedidos[idx].estado = nuevoEstado;
+        localStorage.setItem('pedidos_chilaquiles', JSON.stringify(pedidos));
+        renderOrders();
+    }
+
+    function eliminar(idx) {
+        if(confirm('¿Eliminar esta comanda?')) {
+            let pedidos = JSON.parse(localStorage.getItem('pedidos_chilaquiles'));
+            pedidos.splice(idx, 1);
+            localStorage.setItem('pedidos_chilaquiles', JSON.stringify(pedidos));
+            renderOrders();
+        }
+    }
+
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'pedido_nuevo_trigger') {
+            renderOrders();
+            new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play();
+        }
+    });
+
+    renderOrders();
+</script>
+</body>
+</html>
